@@ -1,9 +1,9 @@
 const { Machine, assign, interpret } = require("xstate");
-const { readFileSync } = require("fs");
+const { readFileSync, writeFileSync } = require("fs");
 const path = require("path");
 
 /**
- * Machine for generating simple machine module
+ * Machine for generating simple machine moduleParts
  * with exhaustive matching-tool helper
  *
  * GIVEN SCHEMA:
@@ -30,7 +30,7 @@ const path = require("path");
  */
 const simpleGentypeMachine = Machine(
     {
-        context: { schemaJson: null, patterns: [] },
+        context: { schemaJson: null, patterns: [], moduleParts: [] },
         initial: "parsingSchema",
         states: {
             parsingSchema: {
@@ -40,7 +40,7 @@ const simpleGentypeMachine = Machine(
                         target: "generatingStateCombinations",
                         actions: "saveSchema",
                     },
-                    onError: "finallizing",
+                    onError: { target: "finallizing", actions: "logError" },
                 },
             },
             generatingStateCombinations: {
@@ -50,14 +50,24 @@ const simpleGentypeMachine = Machine(
                         target: "generatingMachineModule",
                         actions: "saveCombos",
                     },
-                    onError: "finallizing",
+                    onError: { target: "finallizing", actions: "logError" },
                 },
             },
             generatingMachineModule: {
                 invoke: {
                     src: "generateMachineModule",
+                    onDone: {
+                        target: "writingMachineModule",
+                        actions: "saveModule",
+                    },
+                    onError: { target: "finallizing", actions: "logError" },
+                },
+            },
+            writingMachineModule: {
+                invoke: {
+                    src: "writeMachineModule",
                     onDone: "finallizing",
-                    onError: "finallizing",
+                    onError: { target: "finallizing", actions: "logError" },
                 },
             },
             finallizing: { type: "final" },
@@ -67,6 +77,8 @@ const simpleGentypeMachine = Machine(
         actions: {
             saveSchema: assign({ schemaJson: (_, event) => event.data }),
             saveCombos: assign({ patterns: (_, event) => event.data }),
+            saveModule: assign({ moduleParts: (_, event) => event.data }),
+            logError: (_, event) => console.error(event),
         },
         services: {
             parseSchema: () =>
@@ -103,7 +115,39 @@ const simpleGentypeMachine = Machine(
                         reject(e);
                     }
                 }),
-            generateMachineModule: () => Promise.resolve(),
+            generateMachineModule: ({ schemaJson, patterns }) =>
+                new Promise((resolve, reject) => {
+                    try {
+                        const header = `/** This file is generated! */`;
+                        const imports = `import { Machine } from "xstate";`;
+                        const machine = `export const machine = Machine(\n${JSON.stringify(schemaJson, null, 2)}\n);`;
+                        const patternsType = `type Patterns = \n${patterns.map(p => `| [${p.join(",")}]\n`).join("")};`;
+                        const matches = `export const matches = (pattern: Patterns, state: any): boolean => { return state.matches(pattern.join(".")); }`;
+
+                        resolve([
+                            header,
+                            imports,
+                            machine,
+                            patternsType,
+                            matches,
+                        ]);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }),
+            writeMachineModule: ({ moduleParts }) =>
+                new Promise((resolve, reject) => {
+                    try {
+                        const into = path.resolve(
+                            __dirname,
+                            "../src/simple.machine.ts",
+                        );
+                        writeFileSync(into, moduleParts.join("\n\n"));
+                        resolve();
+                    } catch (e) {
+                        reject(e);
+                    }
+                }),
         },
     },
 );
@@ -112,5 +156,5 @@ const simpleGentypeMachine = Machine(
  * Machine execution
  */
 interpret(simpleGentypeMachine)
-    .onTransition(({ value, context }) => console.log(value, context))
+    .onTransition(({ value }) => console.log(value))
     .start();
