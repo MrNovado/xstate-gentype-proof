@@ -1,6 +1,6 @@
 const { Machine, assign, interpret } = require("xstate");
+const { readFileSync } = require("fs");
 const path = require("path");
-const fs = require("fs");
 
 const simpleGentypeMachine = Machine(
     {
@@ -8,27 +8,27 @@ const simpleGentypeMachine = Machine(
         initial: "parsingSchema",
         states: {
             parsingSchema: {
-                on: {
-                    "": {
+                invoke: {
+                    src: "parseSchema",
+                    onDone: {
                         target: "generatingStateCombinations",
-                        actions: "parseSchema",
+                        actions: "contextifySchema",
                     },
+                    onError: "finallizing",
                 },
             },
             generatingStateCombinations: {
-                on: {
-                    "": {
-                        target: "generatingMachineModule",
-                        actions: "generateStateCombinations",
-                    },
+                invoke: {
+                    src: "generateStateCombinations",
+                    onDone: "generatingMachineModule",
+                    onError: "finallizing",
                 },
             },
             generatingMachineModule: {
-                on: {
-                    "": {
-                        target: "finallizing",
-                        actions: "generateMachineModule",
-                    },
+                invoke: {
+                    src: "generateMachineModule",
+                    onDone: "finallizing",
+                    onError: "finallizing",
                 },
             },
             finallizing: { type: "final" },
@@ -36,34 +36,22 @@ const simpleGentypeMachine = Machine(
     },
     {
         actions: {
-            parseSchema: assign({
-                schemaJson: () => {
-                    const simpleSchemaPath = path.resolve(
-                        __dirname,
-                        "simple.schema.json",
-                    );
-                    const simpleSchemaBuffer = fs.readFileSync(
-                        simpleSchemaPath,
-                    );
-                    const simpleSchema = JSON.parse(simpleSchemaBuffer);
-
-                    {
-                        /**
-                         * Checking the schema string
-                         */
-                        const schemaString = JSON.stringify(
-                            simpleSchema,
-                            null,
-                            2,
-                        );
-                        console.log(schemaString);
+            contextifySchema: assign({ schemaJson: (_, event) => event.data }),
+        },
+        services: {
+            parseSchema: () =>
+                new Promise((resolve, reject) => {
+                    const file = path.resolve(__dirname, "simple.schema.json");
+                    try {
+                        const buffer = readFileSync(file);
+                        const schema = JSON.parse(buffer);
+                        resolve(schema);
+                    } catch (e) {
+                        reject(e);
                     }
-
-                    return simpleSchema;
-                },
-            }),
-            generateStateCombinations: () => {},
-            generateMachineModule: () => {},
+                }),
+            generateStateCombinations: () => Promise.resolve(),
+            generateMachineModule: () => Promise.resolve(),
         },
     },
 );
