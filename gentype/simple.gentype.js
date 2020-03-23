@@ -2,6 +2,32 @@ const { Machine, assign, interpret } = require("xstate");
 const { readFileSync } = require("fs");
 const path = require("path");
 
+/**
+ * Machine for generating simple machine module
+ * with exhaustive matching-tool helper
+ *
+ * GIVEN SCHEMA:
+ * ===
+ * ```json
+ * {
+ *  a: { ab: {}, ac: {}, ad: {} },
+ *  b: { bc: {} },
+ *  d: { dd: {} }
+ * }
+ * ```
+ *
+ * RESULTED MODULE:
+ * ===
+ * ```typescript
+ * export const machine = ...;
+ *
+ * type ExhaustivePatterns = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
+ *
+ * export const matches
+ *  = (pattern: ExhaustivePatterns, state)
+ *  => state.matches(pattern.join("."));
+ * ```
+ */
 const simpleGentypeMachine = Machine(
     {
         context: { schemaJson: null },
@@ -56,6 +82,9 @@ const simpleGentypeMachine = Machine(
     },
 );
 
+/**
+ * Machine execution
+ */
 interpret(simpleGentypeMachine)
     .onTransition(({ value }) => console.log(value))
     .start();
