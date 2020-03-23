@@ -120,13 +120,15 @@ const simpleGentypeMachine = Machine(
                     try {
                         const header = `/** This file is generated! */`;
                         const imports = `import { Machine } from "xstate";`;
-                        const machine = `export const machine = Machine(\n${JSON.stringify(schemaJson, null, 2)}\n);`;
-                        const patternsType = `type Patterns = \n${patterns.map(p => `| [${p.join(",")}]\n`).join("")};`;
-                        const matches = `export const matches = (pattern: Patterns, state: any): boolean => { return state.matches(pattern.join(".")); }`;
+                        const schema = `export const schema = (\n${JSON.stringify(schemaJson, null, 2)}\n);`;
+                        const machine = `export const machine = Machine(schema);`;
+                        const patternsType = `type Patterns = \n${patterns.map(p => `    | ["${p.join(",")}"]\n`).join("")};`;
+                        const matches = `export const matches = (pattern: Patterns, state: any): boolean => \n    state.matches(pattern.join("."));`;
 
                         resolve([
                             header,
                             imports,
+                            schema,
                             machine,
                             patternsType,
                             matches,
@@ -140,7 +142,7 @@ const simpleGentypeMachine = Machine(
                     try {
                         const into = path.resolve(
                             __dirname,
-                            "../src/simple.machine.ts",
+                            "../src/simple.machine.gen.ts",
                         );
                         writeFileSync(into, moduleParts.join("\n\n"));
                         resolve();

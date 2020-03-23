@@ -2,7 +2,7 @@
 
 import { Machine } from "xstate";
 
-export const machine = Machine(
+export const schema = (
 {
   "context": {},
   "initial": "1",
@@ -32,16 +32,19 @@ export const machine = Machine(
 }
 );
 
+export const machine = Machine(schema);
+
 type Patterns = 
-| [1]
-| [1,11]
-| [1,12]
-| [1,13]
-| [1,13,131]
-| [1,13,132]
-| [2]
-| [2,21]
-| [2,21,211]
+    | ["1"]
+    | ["1,11"]
+    | ["1,12"]
+    | ["1,13"]
+    | ["1,13,131"]
+    | ["1,13,132"]
+    | ["2"]
+    | ["2,21"]
+    | ["2,21,211"]
 ;
 
-export const matches = (pattern: Patterns, state: any): boolean => { return state.matches(pattern.join(".")); }
+export const matches = (pattern: Patterns, state: any): boolean => 
+    state.matches(pattern.join("."));
