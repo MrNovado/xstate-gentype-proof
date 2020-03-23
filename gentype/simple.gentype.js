@@ -30,7 +30,7 @@ const path = require("path");
  */
 const simpleGentypeMachine = Machine(
     {
-        context: { schemaJson: null },
+        context: { schemaJson: null, patterns: [] },
         initial: "parsingSchema",
         states: {
             parsingSchema: {
@@ -38,7 +38,7 @@ const simpleGentypeMachine = Machine(
                     src: "parseSchema",
                     onDone: {
                         target: "generatingStateCombinations",
-                        actions: "contextifySchema",
+                        actions: "saveSchema",
                     },
                     onError: "finallizing",
                 },
@@ -46,7 +46,10 @@ const simpleGentypeMachine = Machine(
             generatingStateCombinations: {
                 invoke: {
                     src: "generateStateCombinations",
-                    onDone: "generatingMachineModule",
+                    onDone: {
+                        target: "generatingMachineModule",
+                        actions: "saveCombos",
+                    },
                     onError: "finallizing",
                 },
             },
@@ -62,7 +65,8 @@ const simpleGentypeMachine = Machine(
     },
     {
         actions: {
-            contextifySchema: assign({ schemaJson: (_, event) => event.data }),
+            saveSchema: assign({ schemaJson: (_, event) => event.data }),
+            saveCombos: assign({ patterns: (_, event) => event.data }),
         },
         services: {
             parseSchema: () =>
@@ -76,7 +80,29 @@ const simpleGentypeMachine = Machine(
                         reject(e);
                     }
                 }),
-            generateStateCombinations: () => Promise.resolve(),
+            generateStateCombinations: ({ schemaJson }) =>
+                new Promise((resolve, reject) => {
+                    /**
+                     * Recursive state parsing
+                     * @param {*} states is a states object of a machine
+                     */
+                    function parse(states = {}) {
+                        let res = [];
+                        for (let branch in states) {
+                            res.push([branch]);
+                            const inner = parse(states[branch].states);
+                            inner.forEach(b => res.push([branch, ...b]));
+                        }
+                        return res;
+                    }
+
+                    try {
+                        const combinations = parse(schemaJson.states);
+                        resolve(combinations);
+                    } catch (e) {
+                        reject(e);
+                    }
+                }),
             generateMachineModule: () => Promise.resolve(),
         },
     },
@@ -86,5 +112,5 @@ const simpleGentypeMachine = Machine(
  * Machine execution
  */
 interpret(simpleGentypeMachine)
-    .onTransition(({ value }) => console.log(value))
+    .onTransition(({ value, context }) => console.log(value, context))
     .start();
