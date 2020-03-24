@@ -4,7 +4,16 @@
     "states": {
         "1": {
             "id": "1",
+            "initial": "_1",
             "states": {
+                "_1": {
+                    "id": "_1",
+                    "entry": "onEntry",
+                    "on": {
+                        "NEXT": "#2",
+                        "INNER": "11"
+                    }
+                },
                 "11": {
                     "id": "11",
                     "entry": "onEntry",
@@ -17,14 +26,24 @@
                     "id": "12",
                     "entry": "onEntry",
                     "on": {
-                        "PREV": "12",
+                        "PREV": "11",
                         "NEXT": "13",
                         "OUTER": "#1"
                     }
                 },
                 "13": {
                     "id": "13",
+                    "initial": "_13",
                     "states": {
+                        "_13": {
+                            "id": "_13",
+                            "entry": "onEntry",
+                            "on": {
+                                "PREV": "#12",
+                                "INNER": "131",
+                                "OUTER": "#1"
+                            }
+                        },
                         "131": {
                             "id": "131",
                             "entry": "onEntry",
@@ -42,26 +61,35 @@
                             }
                         }
                     },
-                    "entry": "onEntry",
-                    "on": {
-                        "PREV": "12",
-                        "INNER": ".131",
-                        "OUTER": "#1"
-                    }
+                    "entry": "onEntry"
                 }
             },
-            "entry": "onEntry",
-            "on": {
-                "NEXT": "2",
-                "INNER": ".11"
-            }
+            "entry": "onEntry"
         },
         "2": {
             "id": "2",
+            "initial": "_2",
             "states": {
+                "_2": {
+                    "id": "_2",
+                    "entry": "onEntry",
+                    "on": {
+                        "PREV": "#1",
+                        "INNER": "21"
+                    }
+                },
                 "21": {
                     "id": "21",
+                    "initial": "_21",
                     "states": {
+                        "_21": {
+                            "id": "_21",
+                            "entry": "onEntry",
+                            "on": {
+                                "OUTER": "#2",
+                                "INNER": "211"
+                            }
+                        },
                         "211": {
                             "id": "211",
                             "entry": "onEntry",
@@ -70,18 +98,10 @@
                             }
                         }
                     },
-                    "entry": "onEntry",
-                    "on": {
-                        "OUTER": "#2",
-                        "INNER": ".211"
-                    }
+                    "entry": "onEntry"
                 }
             },
-            "entry": "onEntry",
-            "on": {
-                "PREV": "1",
-                "INNER": ".21"
-            }
+            "entry": "onEntry"
         }
     }
 }
