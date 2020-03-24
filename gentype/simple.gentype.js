@@ -27,14 +27,14 @@ const filePath = require("path");
  *  (options: {actions, services, activities, guards, ...}) =>
  *      Machine(schema, options);
  *
- * type Paths = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
+ * type Paths = "a" | "a.ab" | "a.ac" | "a.ad" | "b" | "b.bc" | ...;
  *
  * const eventList = [...];
  * const state2EventMap = {...};
  *
  * export const matches
- *  = (path: Paths, state)
- *  => state.matches(path.join("."));
+ *  = (state, path: Paths)
+ *  => state.matches(path);
  * ```
  */
 const simpleGentypeMachine = Machine(
@@ -197,7 +197,7 @@ const simpleGentypeMachine = Machine(
                                 },
                                 {},
                             );
-                            const pathString = path.join(",");
+                            const pathString = path.join(".");
                             const branchEvents = (state2Event[pathString] = Object.keys(branch.on || {}));
                             events = events.concat(branchEvents);
                         }
@@ -260,14 +260,14 @@ const simpleGentypeMachine = Machine(
                         const schema = `export const schema = (\n${schemaString}\n);`;
                         const optionsType = `export type Options = {\n  actions: {\n    ${options.actions.map(a => `${a}: any`).join(";\n")}\n  };\n};`
                         const machine = `export const createMachine = (options: Options) => Machine(schema, options);`;
-                        const pathsTypeString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
+                        const pathsTypeString = paths.map(p => `    | "${p.join(".")}"\n`).join("");
                         const pathsType = `export type Paths = \n${pathsTypeString};`;
                         const eventType = `export type EventType = \n${events.map(e => `    | "${e}"\n`).join("")};`;
                         const eventEnum = `export enum EventEnum {\n${events.map(e => `  ${e} = "${e}"`).join(",\n")}\n};`;
                         const eventList = `export const eventList: EventType[] = ${JSON.stringify(events, null, 2)};`;
                         const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`;
-                        const hasEvent = `export const hasEvent = (event: EventType, path: Paths): boolean => \n    // @ts-ignore \n    state2EventMap[path.join(",")].includes(event);`;
-                        const matches = `export const matches = (path: Paths, state: any): boolean => \n    state.matches(path.join("."));`;
+                        const hasEvent = `export const hasEvent = (event: EventType, path: Paths): boolean => \n    // @ts-ignore \n    state2EventMap[path].includes(event);`;
+                        const matches = `export const matches = (state: any, path: Paths): boolean => \n    state.matches(path);`;
 
                         resolve([
                             header,

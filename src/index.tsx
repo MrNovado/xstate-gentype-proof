@@ -1,31 +1,61 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom";
 
 import { useMachine } from "@xstate/react";
 import {
     createMachine,
-    EventEnum,
+    eventList,
+    state2EventMap,
     matches,
-    hasEvent,
 } from "./simple.machine.gen";
 
 const simpleMachine = createMachine({ actions: { onEntry: console.log } });
 
 function App() {
     const [state, send] = useMachine(simpleMachine);
+    const controls = eventList.map((event, index) => {
+        const pathString = JSON.stringify(state.value);
+        const regexp = /\w+/g;
 
-    const next = () => send(EventEnum.NEXT);
-    const prev = () => send(EventEnum.PREV);
-    const inner = () => send(EventEnum.INNER);
-    const outer = () => send(EventEnum.OUTER);
+        let path = [];
+        let hasMoreNodes = true;
+        do {
+            const res = regexp.exec(pathString);
+            if (res) {
+                hasMoreNodes = true;
+                path.push(res[0]);
+            } else {
+                hasMoreNodes = false;
+            }
+        } while (hasMoreNodes);
+
+        // @ts-ignore
+        const hasEvent = (state2EventMap[path.join(".")] || []).includes(event);
+        const handler = hasEvent ? () => send(event) : undefined;
+        return (
+            <button key={index} disabled={!hasEvent} onClick={handler}>
+                {event}
+            </button>
+        );
+    });
+
+    useEffect(function logStuff() {
+        switch(true) {
+            case matches(state, "1.13.131"):
+                console.warn("We are in '1.13.131'!");
+                break;
+            case matches(state, "1.13.132"):
+                console.warn("We are in '1.13.132'!");
+                break;
+            default:
+                break;
+        }
+    }, [state, state.value])
 
     return (
         <div style={{ display: "flex", flexDirection: "column" }}>
             <span>{JSON.stringify(state.value, null, 2)}</span>
-            <button onClick={next}>{EventEnum.NEXT}</button>
-            <button onClick={prev}>{EventEnum.PREV}</button>
-            <button onClick={inner}>{EventEnum.INNER}</button>
-            <button onClick={outer}>{EventEnum.OUTER}</button>
+            {controls}
         </div>
     );
 }

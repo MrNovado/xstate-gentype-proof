@@ -121,19 +121,19 @@ export type Options = {
 export const createMachine = (options: Options) => Machine(schema, options);
 
 export type Paths = 
-    | ["1"]
-    | ["1,11"]
-    | ["1,12"]
-    | ["1,13"]
-    | ["1,13,131"]
-    | ["1,13,132"]
-    | ["1,13,_13"]
-    | ["1,_1"]
-    | ["2"]
-    | ["2,21"]
-    | ["2,21,211"]
-    | ["2,21,_21"]
-    | ["2,_2"]
+    | "1"
+    | "1.11"
+    | "1.12"
+    | "1.13"
+    | "1.13.131"
+    | "1.13.132"
+    | "1.13._13"
+    | "1._1"
+    | "2"
+    | "2.21"
+    | "2.21.211"
+    | "2.21._21"
+    | "2._2"
 ;
 
 export type EventType = 
@@ -160,42 +160,42 @@ export const eventList: EventType[] = [
 export const state2EventMap = {
   "1": [],
   "2": [],
-  "1,11": [
+  "1.11": [
     "NEXT",
     "OUTER"
   ],
-  "1,12": [
+  "1.12": [
     "PREV",
     "NEXT",
     "OUTER"
   ],
-  "1,13": [],
-  "1,13,131": [
+  "1.13": [],
+  "1.13.131": [
     "NEXT",
     "OUTER"
   ],
-  "1,13,132": [
+  "1.13.132": [
     "PREV",
     "OUTER"
   ],
-  "1,13,_13": [
+  "1.13._13": [
     "PREV",
     "INNER",
     "OUTER"
   ],
-  "1,_1": [
+  "1._1": [
     "NEXT",
     "INNER"
   ],
-  "2,21": [],
-  "2,21,211": [
+  "2.21": [],
+  "2.21.211": [
     "OUTER"
   ],
-  "2,21,_21": [
+  "2.21._21": [
     "OUTER",
     "INNER"
   ],
-  "2,_2": [
+  "2._2": [
     "PREV",
     "INNER"
   ]
@@ -203,7 +203,7 @@ export const state2EventMap = {
 
 export const hasEvent = (event: EventType, path: Paths): boolean => 
     // @ts-ignore 
-    state2EventMap[path.join(",")].includes(event);
+    state2EventMap[path].includes(event);
 
-export const matches = (path: Paths, state: any): boolean => 
-    state.matches(path.join("."));
+export const matches = (state: any, path: Paths): boolean => 
+    state.matches(path);
