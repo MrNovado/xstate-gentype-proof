@@ -7,6 +7,7 @@
             "states": {
                 "11": {
                     "id": "11",
+                    "entry": "onEntry",
                     "on": {
                         "NEXT": "12",
                         "OUTER": "#1"
@@ -14,6 +15,7 @@
                 },
                 "12": {
                     "id": "12",
+                    "entry": "onEntry",
                     "on": {
                         "PREV": "12",
                         "NEXT": "13",
@@ -25,6 +27,7 @@
                     "states": {
                         "131": {
                             "id": "131",
+                            "entry": "onEntry",
                             "on": {
                                 "NEXT": "132",
                                 "OUTER": "#13"
@@ -32,12 +35,14 @@
                         },
                         "132": {
                             "id": "132",
+                            "entry": "onEntry",
                             "on": {
                                 "PREV": "131",
                                 "OUTER": "#13"
                             }
                         }
                     },
+                    "entry": "onEntry",
                     "on": {
                         "PREV": "12",
                         "INNER": ".131",
@@ -45,6 +50,7 @@
                     }
                 }
             },
+            "entry": "onEntry",
             "on": {
                 "NEXT": "2",
                 "INNER": ".11"
@@ -58,17 +64,20 @@
                     "states": {
                         "211": {
                             "id": "211",
+                            "entry": "onEntry",
                             "on": {
                                 "OUTER": "#21"
                             }
                         }
                     },
+                    "entry": "onEntry",
                     "on": {
                         "OUTER": "#2",
                         "INNER": ".211"
                     }
                 }
             },
+            "entry": "onEntry",
             "on": {
                 "PREV": "1",
                 "INNER": ".21"
