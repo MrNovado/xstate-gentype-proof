@@ -205,5 +205,5 @@ export const hasEvent = (event: EventType, path: Paths): boolean =>
     // @ts-ignore 
     state2EventMap[path].includes(event);
 
-export const matches = (state: any, path: Paths): boolean => 
+export const matches = (state: any) => (path: Paths): boolean => 
     state.matches(path);

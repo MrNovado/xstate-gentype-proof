@@ -267,7 +267,7 @@ const simpleGentypeMachine = Machine(
                         const eventList = `export const eventList: EventType[] = ${JSON.stringify(events, null, 2)};`;
                         const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`;
                         const hasEvent = `export const hasEvent = (event: EventType, path: Paths): boolean => \n    // @ts-ignore \n    state2EventMap[path].includes(event);`;
-                        const matches = `export const matches = (state: any, path: Paths): boolean => \n    state.matches(path);`;
+                        const matches = `export const matches = (state: any) => (path: Paths): boolean => \n    state.matches(path);`;
 
                         resolve([
                             header,

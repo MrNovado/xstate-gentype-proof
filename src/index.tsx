@@ -40,11 +40,12 @@ function App() {
     });
 
     useEffect(function logStuff() {
+        const is = matches(state);
         switch(true) {
-            case matches(state, "1.13.131"):
+            case is("1.13.131"):
                 console.warn("We are in '1.13.131'!");
                 break;
-            case matches(state, "1.13.132"):
+            case is("1.13.132"):
                 console.warn("We are in '1.13.132'!");
                 break;
             default:
