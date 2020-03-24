@@ -9,7 +9,7 @@ import {
     matches,
 } from "./simple.machine.gen";
 
-const simpleMachine = createMachine({ actions: { onEntry: console.log } });
+const simpleMachine = createMachine({ actions: { onEntry: console.info } });
 
 function App() {
     const [state, send] = useMachine(simpleMachine);
