@@ -19,7 +19,11 @@ const path = require("path");
  * RESULTED MODULE:
  * ===
  * ```typescript
- * export const machine = ...;
+ * export const schema = { ... };
+ * 
+ * export const createMachine = 
+ *  (options: {actions, services, activities, guards, ...}) => 
+ *      Machine(schema, options);
  *
  * type ExhaustivePatterns = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
  *
@@ -121,7 +125,7 @@ const simpleGentypeMachine = Machine(
                         const header = `/** This file is generated! */`;
                         const imports = `import { Machine } from "xstate";`;
                         const schema = `export const schema = (\n${JSON.stringify(schemaJson, null, 2)}\n);`;
-                        const machine = `export const machine = Machine(schema);`;
+                        const machine = `export const createMachine = (options: any) => Machine(schema, options);`;
                         const patternsType = `type Patterns = \n${patterns.map(p => `    | ["${p.join(",")}"]\n`).join("")};`;
                         const matches = `export const matches = (pattern: Patterns, state: any): boolean => \n    state.matches(pattern.join("."));`;
 

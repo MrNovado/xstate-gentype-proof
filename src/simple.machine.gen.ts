@@ -32,7 +32,7 @@ export const schema = (
 }
 );
 
-export const machine = Machine(schema);
+export const createMachine = (options: any) => Machine(schema, options);
 
 type Patterns = 
     | ["1"]
