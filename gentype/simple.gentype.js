@@ -263,6 +263,7 @@ const simpleGentypeMachine = Machine(
                         const pathsTypeString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
                         const pathsType = `export type Paths = \n${pathsTypeString};`;
                         const eventType = `export type EventType = \n${events.map(e => `    | "${e}"\n`).join("")};`;
+                        const eventEnum = `export enum EventEnum {\n${events.map(e => `  ${e} = "${e}"`).join(",\n")}\n};`;
                         const eventList = `export const eventList: EventType[] = ${JSON.stringify(events, null, 2)};`;
                         const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`;
                         const hasEvent = `export const hasEvent = (event: EventType, path: Paths): boolean => \n    // @ts-ignore \n    state2EventMap[path.join(",")].includes(event);`;
@@ -276,6 +277,7 @@ const simpleGentypeMachine = Machine(
                             machine,
                             pathsType,
                             eventType,
+                            eventEnum,
                             eventList,
                             eventMap,
                             hasEvent,

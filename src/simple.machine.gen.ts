@@ -119,6 +119,13 @@ export type EventType =
     | "PREV"
 ;
 
+export enum EventEnum {
+  NEXT = "NEXT",
+  INNER = "INNER",
+  OUTER = "OUTER",
+  PREV = "PREV"
+};
+
 export const eventList: EventType[] = [
   "NEXT",
   "INNER",
