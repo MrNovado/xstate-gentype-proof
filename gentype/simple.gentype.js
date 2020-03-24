@@ -6,6 +6,7 @@ const path = require("path");
  * A machine for generating a simple machine module
  * - with a strict creator (tips you on what options you have avaliable)
  * - with exhaustive matching-tool helper
+ * - with a strict event 2 state matching tool
  *
  * GIVEN SCHEMA:
  * ===
@@ -21,9 +22,9 @@ const path = require("path");
  * ===
  * ```typescript
  * export const schema = { ... };
- * 
- * export const createMachine = 
- *  (options: {actions, services, activities, guards, ...}) => 
+ *
+ * export const createMachine =
+ *  (options: {actions, services, activities, guards, ...}) =>
  *      Machine(schema, options);
  *
  * type ExhaustivePatterns = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
@@ -35,58 +36,85 @@ const path = require("path");
  */
 const simpleGentypeMachine = Machine(
     {
-        context: { schemaJson: null, patterns: [], moduleParts: [] },
+        context: { schemaJson: null, moduleParts: [] },
         initial: "parsingSchema",
         states: {
             parsingSchema: {
                 invoke: {
-                    src: "parseSchema",
-                    onDone: {
-                        target: "generatingStateCombinations",
-                        actions: "saveSchema",
-                    },
-                    onError: { target: "finallizing", actions: "logError" },
-                },
-            },
-            generatingStateCombinations: {
-                invoke: {
-                    src: "generateStateCombinations",
+                    src: "parseSchemaFile",
                     onDone: {
                         target: "generatingMachineModule",
-                        actions: "saveCombos",
+                        actions: "saveSchema",
                     },
-                    onError: { target: "finallizing", actions: "logError" },
+                    onError: { target: "#finallizing", actions: "logError" },
                 },
             },
             generatingMachineModule: {
-                invoke: {
-                    src: "generateMachineModule",
-                    onDone: {
-                        target: "writingMachineModule",
-                        actions: "saveModule",
+                context: { patterns: [], event2State: null },
+                initial: "generatingStateCombinations",
+                states: {
+                    generatingStateCombinations: {
+                        invoke: {
+                            src: "generateStateCombinations",
+                            onDone: {
+                                target: "generatingEvent2StateMap",
+                                actions: "saveCombos",
+                            },
+                            onError: {
+                                target: "#finallizing",
+                                actions: "logError",
+                            },
+                        },
                     },
-                    onError: { target: "finallizing", actions: "logError" },
+                    generatingEvent2StateMap: {
+                        invoke: {
+                            src: "generateEvent2StateMap",
+                            onDone: {
+                                target: "generatingModuleParts",
+                                actions: "saveEvents",
+                            },
+                            onError: {
+                                target: "#finallizing",
+                                actions: "logError",
+                            },
+                        },
+                    },
+                    generatingModuleParts: {
+                        invoke: {
+                            src: "generateMachineModule",
+                            onDone: {
+                                target: "#writingMachineModule",
+                                actions: "saveModule",
+                            },
+                            onError: {
+                                target: "#finallizing",
+                                actions: "logError",
+                            },
+                        },
+                    },
                 },
             },
             writingMachineModule: {
+                id: "writingMachineModule",
                 invoke: {
                     src: "writeMachineModule",
-                    onDone: "finallizing",
-                    onError: { target: "finallizing", actions: "logError" },
+                    onDone: "#finallizing",
+                    onError: { target: "#finallizing", actions: "logError" },
                 },
             },
-            finallizing: { type: "final" },
+            finallizing: { id: "finallizing", type: "final" },
         },
     },
     {
         actions: {
             saveSchema: assign({ schemaJson: (_, event) => event.data }),
             saveCombos: assign({ patterns: (_, event) => event.data }),
+            saveEvents: assign({ event2State: (_, event) => event.data }),
             saveModule: assign({ moduleParts: (_, event) => event.data }),
             logError: (_, event) => console.error(event),
         },
         services: {
-            parseSchema: () =>
+            parseSchemaFile: () =>
                 new Promise((resolve, reject) => {
                     const file = path.resolve(__dirname, "simple.schema.json");
                     try {
@@ -120,14 +148,21 @@ const simpleGentypeMachine = Machine(
                         reject(e);
                     }
                 }),
-            generateMachineModule: ({ schemaJson, patterns }) =>
+            generateEvent2StateMap: ({ schemaJson, patterns }) =>
                 new Promise((resolve, reject) => {
+                    resolve();
+                }),
+            generateMachineModule: ({ schemaJson, patterns, event2State }) =>
+                new Promise((resolve, reject) => {
+                    // prettier-ignore
                     try {
                         const header = `/** This file is generated! */`;
                         const imports = `import { Machine } from "xstate";`;
-                        const schema = `export const schema = (\n${JSON.stringify(schemaJson, null, 2)}\n);`;
+                        const schemaString = JSON.stringify(schemaJson, null, 2);
+                        const schema = `export const schema = (\n${schemaString}\n);`;
                         const machine = `export const createMachine = (options: any) => Machine(schema, options);`;
-                        const patternsType = `type Patterns = \n${patterns.map(p => `    | ["${p.join(",")}"]\n`).join("")};`;
+                        const patternsString = patterns.map(p => `    | ["${p.join(",")}"]\n`).join("");
+                        const patternsType = `type Patterns = \n${patternsString};`;
                         const matches = `export const matches = (pattern: Patterns, state: any): boolean => \n    state.matches(pattern.join("."));`;
 
                         resolve([
