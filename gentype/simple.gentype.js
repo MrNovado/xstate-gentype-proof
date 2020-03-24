@@ -193,10 +193,12 @@ const simpleGentypeMachine = Machine(
                         const schemaString = JSON.stringify(schemaJson, null, 2);
                         const schema = `export const schema = (\n${schemaString}\n);`;
                         const machine = `export const createMachine = (options: any) => Machine(schema, options);`;
-                        const pathsString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
-                        const pathsType = `type Paths = \n${pathsString};`;
-                        const eventList = `export const eventList = ${JSON.stringify(events, null, 2)}`
-                        const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`
+                        const pathsTypeString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
+                        const pathsType = `export type Paths = \n${pathsTypeString};`;
+                        const eventType = `export type EventType = \n${events.map(e => `    | "${e}"\n`).join("")};`;
+                        const eventList = `export const eventList: EventType[] = ${JSON.stringify(events, null, 2)};`;
+                        const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`;
+                        const hasEvent = `export const hasEvent = (event: EventType, path: Paths): boolean => \n    // @ts-ignore \n    state2EventMap[path.join(",")].includes(event);`;
                         const matches = `export const matches = (path: Paths, state: any): boolean => \n    state.matches(path.join("."));`;
 
                         resolve([
@@ -205,8 +207,10 @@ const simpleGentypeMachine = Machine(
                             schema,
                             machine,
                             pathsType,
+                            eventType,
                             eventList,
                             eventMap,
+                            hasEvent,
                             matches,
                         ]);
                     } catch (e) {

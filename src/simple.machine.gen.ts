@@ -94,7 +94,7 @@ export const schema = (
 
 export const createMachine = (options: any) => Machine(schema, options);
 
-type Paths = 
+export type Paths = 
     | ["1"]
     | ["1,11"]
     | ["1,12"]
@@ -106,12 +106,19 @@ type Paths =
     | ["2,21,211"]
 ;
 
-export const eventList = [
+export type EventType = 
+    | "NEXT"
+    | "INNER"
+    | "OUTER"
+    | "PREV"
+;
+
+export const eventList: EventType[] = [
   "NEXT",
   "INNER",
   "OUTER",
   "PREV"
-]
+];
 
 export const state2EventMap = {
   "1": [
@@ -152,6 +159,10 @@ export const state2EventMap = {
     "OUTER"
   ]
 }
+
+export const hasEvent = (event: EventType, path: Paths): boolean => 
+    // @ts-ignore 
+    state2EventMap[path.join(",")].includes(event);
 
 export const matches = (path: Paths, state: any): boolean => 
     state.matches(path.join("."));
