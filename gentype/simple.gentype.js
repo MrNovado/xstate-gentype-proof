@@ -1,6 +1,6 @@
 const { Machine, assign, interpret } = require("xstate");
 const { readFileSync, writeFileSync } = require("fs");
-const path = require("path");
+const filePath = require("path");
 
 /**
  * A machine for generating a simple machine module
@@ -27,10 +27,13 @@ const path = require("path");
  *  (options: {actions, services, activities, guards, ...}) =>
  *      Machine(schema, options);
  *
- * type ExhaustivePaths = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
+ * type Paths = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
+ * 
+ * const eventList = [...];
+ * const state2EventMap = {...};
  *
  * export const matches
- *  = (path: ExhaustivePaths, state)
+ *  = (path: Paths, state)
  *  => state.matches(path.join("."));
  * ```
  */
@@ -119,7 +122,7 @@ const simpleGentypeMachine = Machine(
         services: {
             parseSchemaFile: () =>
                 new Promise((resolve, reject) => {
-                    const file = path.resolve(__dirname, "simple.schema.json");
+                    const file = filePath.resolve(__dirname, "simple.schema.json");
                     try {
                         const buffer = readFileSync(file);
                         const schema = JSON.parse(buffer);
@@ -213,7 +216,7 @@ const simpleGentypeMachine = Machine(
             writeMachineModule: ({ moduleParts }) =>
                 new Promise((resolve, reject) => {
                     try {
-                        const into = path.resolve(
+                        const into = filePath.resolve(
                             __dirname,
                             "../src/simple.machine.gen.ts",
                         );
