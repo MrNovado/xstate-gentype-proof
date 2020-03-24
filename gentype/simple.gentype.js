@@ -28,7 +28,7 @@ const filePath = require("path");
  *      Machine(schema, options);
  *
  * type Paths = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
- * 
+ *
  * const eventList = [...];
  * const state2EventMap = {...};
  *
@@ -53,7 +53,12 @@ const simpleGentypeMachine = Machine(
                 },
             },
             generatingMachineModule: {
-                context: { paths: [], state2Event: null, events: [] },
+                context: {
+                    paths: [],
+                    state2Event: null,
+                    events: [],
+                    options: null,
+                },
                 initial: "generatingStateCombinations",
                 states: {
                     generatingStateCombinations: {
@@ -73,8 +78,21 @@ const simpleGentypeMachine = Machine(
                         invoke: {
                             src: "generateEventTools",
                             onDone: {
-                                target: "generatingModuleParts",
+                                target: "generatingMachineOptions",
                                 actions: "saveEvents",
+                            },
+                            onError: {
+                                target: "#finallizing",
+                                actions: "logError",
+                            },
+                        },
+                    },
+                    generatingMachineOptions: {
+                        invoke: {
+                            src: "generateMachineOptions",
+                            onDone: {
+                                target: "generatingModuleParts",
+                                actions: "saveOptions",
                             },
                             onError: {
                                 target: "#finallizing",
@@ -116,13 +134,17 @@ const simpleGentypeMachine = Machine(
                 state2Event: (_, event) => event.data.state2Event,
                 events: (_, event) => event.data.events,
             }),
+            saveOptions: assign({ options: (_, event) => event.data }),
             saveModule: assign({ moduleParts: (_, event) => event.data }),
             logError: (_, event) => console.error(event),
         },
         services: {
             parseSchemaFile: () =>
                 new Promise((resolve, reject) => {
-                    const file = filePath.resolve(__dirname, "simple.schema.json");
+                    const file = filePath.resolve(
+                        __dirname,
+                        "simple.schema.json",
+                    );
                     try {
                         const buffer = readFileSync(file);
                         const schema = JSON.parse(buffer);
@@ -184,7 +206,51 @@ const simpleGentypeMachine = Machine(
                         reject(e);
                     }
                 }),
-            generateMachineModule: ({ schemaJson, paths, state2Event, events }) =>
+            generateMachineOptions: ({ schemaJson, paths }) =>
+                new Promise((resolve, reject) => {
+                    /**
+                     * Looking for entry props in stateNode configs
+                     */
+                    try {
+                        let actions = new Set();
+                        for (let path of paths) {
+                            /**
+                             * All path to all states are already saved into paths!
+                             * Every path is a complete path to a specific state-branch.
+                             * paths : => [[1],[1,11],[1,11,111],[1,11,112], ...]
+                             */
+                            const branch = path.reduce(
+                                function intoAStateBranch(branch, state) {
+                                    return (
+                                        schemaJson.states[state] ||
+                                        branch.states[state]
+                                    );
+                                },
+                                {},
+                            );
+
+                            if (branch.entry) {
+                                switch (typeof branch.entry) {
+                                    case "string":
+                                        actions.add(branch.entry);
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                        }
+                        resolve({ actions: Array.from(actions) });
+                    } catch (e) {
+                        reject(e);
+                    }
+                }),
+            generateMachineModule: ({
+                schemaJson,
+                paths,
+                state2Event,
+                events,
+                options,
+            }) =>
                 new Promise((resolve, reject) => {
                     // prettier-ignore
                     try {
@@ -192,7 +258,8 @@ const simpleGentypeMachine = Machine(
                         const imports = `import { Machine } from "xstate";`;
                         const schemaString = JSON.stringify(schemaJson, null, 2);
                         const schema = `export const schema = (\n${schemaString}\n);`;
-                        const machine = `export const createMachine = (options: any) => Machine(schema, options);`;
+                        const optionsType = `export type Options = {\n  actions: {\n    ${options.actions.map(a => `${a}: any`).join(";\n")}\n  };\n};`
+                        const machine = `export const createMachine = (options: Options) => Machine(schema, options);`;
                         const pathsTypeString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
                         const pathsType = `export type Paths = \n${pathsTypeString};`;
                         const eventType = `export type EventType = \n${events.map(e => `    | "${e}"\n`).join("")};`;
@@ -205,6 +272,7 @@ const simpleGentypeMachine = Machine(
                             header,
                             imports,
                             schema,
+                            optionsType,
                             machine,
                             pathsType,
                             eventType,

@@ -92,7 +92,13 @@ export const schema = (
 }
 );
 
-export const createMachine = (options: any) => Machine(schema, options);
+export type Options = {
+  actions: {
+    onEntry: any
+  };
+};
+
+export const createMachine = (options: Options) => Machine(schema, options);
 
 export type Paths = 
     | ["1"]
