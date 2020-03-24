@@ -94,7 +94,7 @@ export const schema = (
 
 export const createMachine = (options: any) => Machine(schema, options);
 
-type Patterns = 
+type Paths = 
     | ["1"]
     | ["1,11"]
     | ["1,12"]
@@ -106,5 +106,52 @@ type Patterns =
     | ["2,21,211"]
 ;
 
-export const matches = (pattern: Patterns, state: any): boolean => 
-    state.matches(pattern.join("."));
+export const eventList = [
+  "NEXT",
+  "INNER",
+  "OUTER",
+  "PREV"
+]
+
+export const state2EventMap = {
+  "1": [
+    "NEXT",
+    "INNER"
+  ],
+  "2": [
+    "PREV",
+    "INNER"
+  ],
+  "1,11": [
+    "NEXT",
+    "OUTER"
+  ],
+  "1,12": [
+    "PREV",
+    "NEXT",
+    "OUTER"
+  ],
+  "1,13": [
+    "PREV",
+    "INNER",
+    "OUTER"
+  ],
+  "1,13,131": [
+    "NEXT",
+    "OUTER"
+  ],
+  "1,13,132": [
+    "PREV",
+    "OUTER"
+  ],
+  "2,21": [
+    "OUTER",
+    "INNER"
+  ],
+  "2,21,211": [
+    "OUTER"
+  ]
+}
+
+export const matches = (path: Paths, state: any): boolean => 
+    state.matches(path.join("."));

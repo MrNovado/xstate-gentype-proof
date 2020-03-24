@@ -27,11 +27,11 @@ const path = require("path");
  *  (options: {actions, services, activities, guards, ...}) =>
  *      Machine(schema, options);
  *
- * type ExhaustivePatterns = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
+ * type ExhaustivePaths = [a] | [a, ab] | [a, ac] | [a, ad] | [b] | [b, bc] | ...;
  *
  * export const matches
- *  = (pattern: ExhaustivePatterns, state)
- *  => state.matches(pattern.join("."));
+ *  = (path: ExhaustivePaths, state)
+ *  => state.matches(path.join("."));
  * ```
  */
 const simpleGentypeMachine = Machine(
@@ -50,14 +50,14 @@ const simpleGentypeMachine = Machine(
                 },
             },
             generatingMachineModule: {
-                context: { patterns: [], event2State: null },
+                context: { paths: [], state2Event: null, events: [] },
                 initial: "generatingStateCombinations",
                 states: {
                     generatingStateCombinations: {
                         invoke: {
                             src: "generateStateCombinations",
                             onDone: {
-                                target: "generatingEvent2StateMap",
+                                target: "generatingState2EventMap",
                                 actions: "saveCombos",
                             },
                             onError: {
@@ -66,9 +66,9 @@ const simpleGentypeMachine = Machine(
                             },
                         },
                     },
-                    generatingEvent2StateMap: {
+                    generatingState2EventMap: {
                         invoke: {
-                            src: "generateEvent2StateMap",
+                            src: "generateEventTools",
                             onDone: {
                                 target: "generatingModuleParts",
                                 actions: "saveEvents",
@@ -108,8 +108,11 @@ const simpleGentypeMachine = Machine(
     {
         actions: {
             saveSchema: assign({ schemaJson: (_, event) => event.data }),
-            saveCombos: assign({ patterns: (_, event) => event.data }),
-            saveEvents: assign({ event2State: (_, event) => event.data }),
+            saveCombos: assign({ paths: (_, event) => event.data }),
+            saveEvents: assign({
+                state2Event: (_, event) => event.data.state2Event,
+                events: (_, event) => event.data.events,
+            }),
             saveModule: assign({ moduleParts: (_, event) => event.data }),
             logError: (_, event) => console.error(event),
         },
@@ -148,11 +151,37 @@ const simpleGentypeMachine = Machine(
                         reject(e);
                     }
                 }),
-            generateEvent2StateMap: ({ schemaJson, patterns }) =>
+            generateEventTools: ({ schemaJson, paths }) =>
                 new Promise((resolve, reject) => {
-                    resolve();
+                    // prettier-ignore
+                    try {
+                        let state2Event = {};
+                        let events = [];
+                        for (let path of paths) {
+                            /**
+                             * All path to all states are already saved into paths!
+                             * Every path is a complete path to a specific state-branch.
+                             * paths : => [[1],[1,11],[1,11,111],[1,11,112], ...]
+                             */
+                            const branch = path.reduce(
+                                function intoAStateBranch(branch, state) {
+                                    return (
+                                        schemaJson.states[state] ||
+                                        branch.states[state]
+                                    );
+                                },
+                                {},
+                            );
+                            const pathString = path.join(",");
+                            const branchEvents = (state2Event[pathString] = Object.keys(branch.on || {}));
+                            events = events.concat(branchEvents);
+                        }
+                        resolve({ state2Event, events: Array.from(new Set(events)) });
+                    } catch (e) {
+                        reject(e);
+                    }
                 }),
-            generateMachineModule: ({ schemaJson, patterns, event2State }) =>
+            generateMachineModule: ({ schemaJson, paths, state2Event, events }) =>
                 new Promise((resolve, reject) => {
                     // prettier-ignore
                     try {
@@ -161,16 +190,20 @@ const simpleGentypeMachine = Machine(
                         const schemaString = JSON.stringify(schemaJson, null, 2);
                         const schema = `export const schema = (\n${schemaString}\n);`;
                         const machine = `export const createMachine = (options: any) => Machine(schema, options);`;
-                        const patternsString = patterns.map(p => `    | ["${p.join(",")}"]\n`).join("");
-                        const patternsType = `type Patterns = \n${patternsString};`;
-                        const matches = `export const matches = (pattern: Patterns, state: any): boolean => \n    state.matches(pattern.join("."));`;
+                        const pathsString = paths.map(p => `    | ["${p.join(",")}"]\n`).join("");
+                        const pathsType = `type Paths = \n${pathsString};`;
+                        const eventList = `export const eventList = ${JSON.stringify(events, null, 2)}`
+                        const eventMap = `export const state2EventMap = ${JSON.stringify(state2Event, null, 2)}`
+                        const matches = `export const matches = (path: Paths, state: any): boolean => \n    state.matches(path.join("."));`;
 
                         resolve([
                             header,
                             imports,
                             schema,
                             machine,
-                            patternsType,
+                            pathsType,
+                            eventList,
+                            eventMap,
                             matches,
                         ]);
                     } catch (e) {
