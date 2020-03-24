@@ -3,8 +3,9 @@ const { readFileSync, writeFileSync } = require("fs");
 const path = require("path");
 
 /**
- * Machine for generating simple machine moduleParts
- * with exhaustive matching-tool helper
+ * A machine for generating a simple machine module
+ * - with a strict creator (tips you on what options you have avaliable)
+ * - with exhaustive matching-tool helper
  *
  * GIVEN SCHEMA:
  * ===
